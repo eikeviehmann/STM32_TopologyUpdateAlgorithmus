@@ -1,0 +1,7 @@
+rf24_debug.c:16:6:rf24_debug_enable	16	static
+rf24_debug.c:23:6:rf24_debug_disable	4	static
+rf24_debug.c:29:6:rf24_debug	64	static
+rf24_debug.c:75:6:rf24_printf	16	static
+rf24_debug.c:83:6:rf24_printf_vargs	48	static
+rf24_debug.c:171:7:decimal_to_string	24	static
+rf24_debug.c:185:7:decimal_to_binary	32	static

@@ -1,0 +1,5 @@
+rf24_stm32f1xx_spi.c:3:6:rf24_stm32f1xx_spi_init	16	static
+rf24_stm32f1xx_spi.c:64:6:rf24_stm32f1xx_spi_csn_low	4	static
+rf24_stm32f1xx_spi.c:68:6:rf24_stm32f1xx_spi_csn_high	4	static
+rf24_stm32f1xx_spi.c:72:9:rf24_stm32f1xx_spi_shift_byte	16	static
+rf24_stm32f1xx_spi.c:79:6:rf24_stm32f1xx_spi_write_byte	16	static

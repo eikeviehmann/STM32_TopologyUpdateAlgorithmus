@@ -1,0 +1,6 @@
+stm32f10x_md5.c:72:13:Encode	32	static
+stm32f10x_md5.c:87:13:Decode	32	static
+stm32f10x_md5.c:118:13:MD5Transform	96	static
+stm32f10x_md5.c:205:6:MD5Init	16	static
+stm32f10x_md5.c:220:6:MD5Update	32	static
+stm32f10x_md5.c:256:6:MD5Final	32	static

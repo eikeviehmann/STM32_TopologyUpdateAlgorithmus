@@ -1,0 +1,7 @@
+core_cm3.h:1511:22:__NVIC_EnableIRQ	16	static
+rf24_stm32f1xx_uart.c:9:6:rf24_stm32f1xx_usart_init	24	static
+rf24_stm32f1xx_uart.c:37:6:rf24_stm32f1xx_usart_write_byte	16	static
+rf24_stm32f1xx_uart.c:45:5:rf24_stm32f1xx_usart_write_str	24	static
+rf24_stm32f1xx_uart.c:58:5:rf24_stm32f1xx_usart_write_line	24	static
+rf24_stm32f1xx_uart.c:66:6:rf24_stm32f1xx_usart_buffer_char	24	static
+rf24_stm32f1xx_uart.c:77:6:USART1_IRQHandler	16	static
