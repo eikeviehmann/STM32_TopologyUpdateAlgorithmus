@@ -87,8 +87,14 @@ struct rf24_cyclic_task {
 };
 
 typedef enum {
+	trm_timeout,
 	num_timeout
 } rf24_timer_names;
+
+static const char *rf24_timer_names_string[] = {
+	"trm_timeout",
+	"num_timeout",
+};
 
 typedef enum {
 	s,
@@ -101,6 +107,7 @@ struct rf24_timer {
 	uint32_t 						t_us;
 	volatile uint32_t 				t_count_us;
 	rf24_worker_fct_ptr 			fct_ptr_timeout;
+	struct rf24_timer				*next_timer;
 };
 
 typedef struct rf24_timespan {
@@ -134,8 +141,9 @@ void					rf24_worker_start();
 void 					rf24_worker_stop();
 
 void 					rf24_worker_start_timer(rf24_timer_names name, rf24_timer_units unit, uint32_t duration, rf24_worker_fct_ptr fct_ptr_timeout);
-struct rf24_timespan 	rf24_worker_stop_timer();
+struct rf24_timespan 	rf24_worker_stop_timer(rf24_timer_names);
 struct rf24_timespan 	rf24_worker_us_to_timespan(uint32_t us);
+void 					rf24_worker_print_timers();
 
 // INTERNAL FUNCTIONS
 

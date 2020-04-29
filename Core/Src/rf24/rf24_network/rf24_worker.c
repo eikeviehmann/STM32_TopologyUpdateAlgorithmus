@@ -2,7 +2,7 @@
 #include "rf24_network.h"
 #include "rf24_csma_ca.h"
 
-struct rf24_timer		*timer1 = NULL;
+struct rf24_timer		*rf24_timers = NULL;
 struct rf24_task 		*rf24_tasks = NULL;
 struct rf24_cyclic_task *rf24_cyclic_tasks = NULL;
 
@@ -80,24 +80,37 @@ void rf24_worker_process_cyclic_tasks()
 
 void rf24_worker_process_timers()
 {
-	if(timer1 == NULL) return;
+	if(rf24_timers == NULL) return;
 
-	if(timer1->t_count_us < timer1->t_us)
+	// start from beginning
+	struct rf24_timer *current_timer = rf24_timers;
+	struct rf24_timer *predecessor = NULL;
+
+	// iterate over linked list (timers)
+	while(current_timer != NULL)
 	{
-		timer1->t_count_us += TIMER_CYCLE_US;
-
-		if(timer1->t_count_us >= timer1->t_us)
+		if(current_timer->t_count_us < current_timer->t_us)
 		{
-			if(timer1->fct_ptr_timeout)
+			// update wait state
+			current_timer->t_count_us += TIMER_CYCLE_US;
+
+			if(current_timer->t_count_us >= current_timer->t_us)
 			{
-				timer1->fct_ptr_timeout();
+				// call attached callback function
+				if(current_timer->fct_ptr_timeout) current_timer->fct_ptr_timeout();
 			}
 		}
-	}
-	else
-	{
-		free(timer1);
-		timer1 = NULL;
+		else
+		{
+			//remove timer
+			if(predecessor)
+				predecessor->next_timer = current_timer->next_timer;
+			else
+				rf24_timers = current_timer->next_timer;
+		}
+
+		predecessor = current_timer;
+		current_timer = current_timer->next_timer;
 	}
 }
 
@@ -146,7 +159,6 @@ void rf24_worker_process_tasks()
 				rf24_tasks->t_cycle_us/1000);*/
 
 		//rf24_worker_print_tasks();
-		//rf24_debug("---------------");
 
 		rf24_worker_pop_task();
 	}
@@ -328,28 +340,55 @@ void rf24_worker_print_tasks()
 
 void rf24_worker_start_timer(rf24_timer_names name, rf24_timer_units unit, uint32_t duration, rf24_worker_fct_ptr fct_ptr_timeout)
 {
-	struct rf24_timer *timer = (struct rf24_timer*) malloc(sizeof(struct rf24_timer));
+	struct rf24_timer *new_timer = (struct rf24_timer*) malloc(sizeof(struct rf24_timer));
 
-	timer->name = name;
-	timer->t_count_us = 0;
-	timer->fct_ptr_timeout = fct_ptr_timeout;
+	new_timer->name = name;
+	new_timer->t_count_us = 0;
+	new_timer->fct_ptr_timeout = fct_ptr_timeout;
+	new_timer->next_timer = NULL;
 
 	switch(unit)
 	{
-		case s: timer->t_us = duration * 1000000; break;
-		case ms: timer->t_us = duration * 1000; break;
-		case us: timer->t_us = duration; break;
+		case s: new_timer->t_us = duration * 1000000; break;
+		case ms: new_timer->t_us = duration * 1000; break;
+		case us: new_timer->t_us = duration; break;
 	}
 
-	timer1 = timer;
+	if(rf24_timers == NULL){
+		rf24_timers = new_timer;
+	}
+	else{
+		new_timer->next_timer = rf24_timers;
+		rf24_timers = new_timer;
+	}
 }
 
-struct rf24_timespan rf24_worker_stop_timer()
+struct rf24_timespan rf24_worker_stop_timer(rf24_timer_names timer_name)
 {
-	struct rf24_timespan timespan = rf24_worker_us_to_timespan(timer1->t_count_us);
+	struct rf24_timespan timespan;
 
-	free(timer1);
-	timer1 = NULL;
+	// start from the first node
+	struct rf24_timer *current_timer = rf24_timers;
+
+	// in case timer is head
+	if(rf24_timers->name == timer_name){
+		timespan = rf24_worker_us_to_timespan(rf24_timers->t_count_us);
+		rf24_timers = rf24_timers->next_timer;
+		return timespan;
+	}
+
+	// iterate over list
+	while(current_timer != NULL)
+	{
+		if(current_timer->next_timer->name == timer_name)
+		{
+			timespan = rf24_worker_us_to_timespan(current_timer->next_timer->t_count_us);
+			current_timer->next_timer = current_timer->next_timer->next_timer;
+			return timespan;
+		}
+
+		current_timer = current_timer->next_timer;
+	}
 
 	return timespan;
 }
@@ -367,4 +406,17 @@ struct rf24_timespan rf24_worker_us_to_timespan(uint32_t us)
 	timespan.us = remaining_us;
 
 	return timespan;
+}
+
+void rf24_worker_print_timers()
+{
+	// start from the first node
+	struct rf24_timer *current_timer = rf24_timers;
+
+	// iterate over list
+	while(current_timer != NULL)
+	{
+		rf24_printf("%s\n", rf24_timer_names_string[current_timer->name]);
+		current_timer = current_timer->next_timer;
+	}
 }
