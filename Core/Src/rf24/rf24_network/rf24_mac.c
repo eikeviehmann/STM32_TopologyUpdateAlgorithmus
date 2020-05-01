@@ -8,7 +8,7 @@
 //_________________________________________________________________________________________________________________________________________________________________________
 // Global variables & Constants
 
-//volatile rf24_mac_flags					mac_flags;
+//volatile rf24_mac_flags				mac_flags;
 
 rf24_mac_addr 							mac_addr;
 rf24_mac_addr 							mac_addr_broadcast = { .bytes = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF } };
@@ -32,8 +32,6 @@ void rf24_mac_frame_received_handler(rf24_mac_frame *mac_frame)
 			if(addressed_to_me)
 			{
 				_data_frame_to_payload(mac_frame, &mac_transmission);
-
-				//if(rf24_worker_current_task()->task == )
 
 				rf24_mac_send_ack(mac_frame);
 			}
@@ -127,21 +125,34 @@ void rf24_mac_ack_timeout()
 		mac_transmission.attemps++;
 
 		rf24_debug(
-				MAC, TIMEOUT, VOID, VOID, NULL,
-				"[ACK-Timeout] retransmit frame %d (%d/%d attempt/s)\n",
-				mac_transmission.frame_count,
-				mac_transmission.attemps,
-				N_MAX_RETRANSMITS);
+			MAC, TIMEOUT, VOID, VOID, NULL,
+			"[ACK-Timeout] retransmit frame %d (%d/%d attempt/s)\n",
+			mac_transmission.frame_count,
+			mac_transmission.attemps,
+			N_MAX_RETRANSMITS);
 	}
 	else
 	{
-		// If debug enabled print max retries reached
 		rf24_debug(MAC, INFO, VOID, VOID, NULL, "[ACK-Timeout] max retries reached -> transmission cancelled\n");
+
+		switch(mac_transmission.frame_type)
+		{
+			case TOPOLOGY:
+				rf24_network_transmission_failed();
+				return;
+			default:
+				break;
+		}
 	}
 }
 
 
 // FUNCTIONS
+
+void rf24_mac_test_timer_timeout()
+{
+	rf24_printf("TIMEOUT\n");
+}
 
 void rf24_mac_init()
 {
@@ -155,71 +166,13 @@ void rf24_mac_init()
 
 	rf24_mac_print_timings();
 
-	//rf24_worker_add_cyclic_task(update_local_neighbours, T_BROADCAST_TOPOGLOY_MS*2, rf24_mac_update_neighbours);
+	/*rf24_worker_start_timer(trm_timeout, ms, 5000, rf24_mac_test_timer_timeout);
+	rf24_worker_start_timer(num_timeout, ms, 1000, rf24_mac_test_timer_timeout);
+	rf24_worker_start_timer(trm_timeout, ms, 3000, rf24_mac_test_timer_timeout);
 
-	//rf24_worker_add_cyclic_task(update_local_neighbours, T_BROADCAST_TOPOGLOY_MS*2, rf24_mac_print_neighbours);
+	rf24_worker_stop_timer(num_timeout);
 
-	//uint8_t payload[10];
-
-	//rf24_mac_transfer(&mac_addr_broadcast, payload, 10);
-
-	/*rf24_mac_frame mac_frame;
-
-	uint8_t payload[50];
-
-	for(int i=0; i < 50; i++) payload[i] = i;
-
-	rf24_mac_transfer(&mac_addr_broadcast, payload, 50);
-
-	rf24_mac_build_data_frame(mac_transmission, &mac_frame);
-	rf24_mac_build_data_frame(mac_transmission, &mac_frame);
-	rf24_mac_build_data_frame(mac_transmission, &mac_frame);*/
-
-
-	/*rf24_mac_frame mac_frame1, mac_frame2;
-	rf24_module_tx_data tx_data;
-	rf24_module_rx_data rx_data;
-
-	struct __attribute__((__packed__)) frame_control{
-		unsigned int protocol_version : 2;
-		unsigned int type : 2;
-		unsigned int subtype : 4;
-		unsigned int to_distribution : 1;
-		unsigned int from_distribution : 1;
-		unsigned int more_fragments : 1;
-		unsigned int retry : 1;
-		unsigned int power_mangement : 1;
-		unsigned int more_data : 1;
-		unsigned int wep : 1;
-		unsigned int order : 1;
-	} frame_control; // 2 Byte*/
-
-	/*mac_frame1.frame_control.protocol_version = 1;
-	mac_frame1.frame_control.type = CONTROL;
-	mac_frame1.frame_control.subtype = CONTROL_RTS;
-	mac_frame1.frame_control.to_distribution = 0;
-	mac_frame1.frame_control.from_distribution = 0;
-	mac_frame1.frame_control.retry = 0;
-	mac_frame1.frame_control.power_mangement = 0;
-	mac_frame1.frame_control.more_data = 0;
-	mac_frame1.frame_control.wep = 0;
-	mac_frame1.frame_control.order = 0;
-	mac_frame1.frame_control.more_fragments = 0; // Byte 1 -> DEZ 0
-	mac_frame1.duration = 1234;
-	mac_frame1.receiver = mac_addr_broadcast;
-	mac_frame1.transmitter = mac_addr_broadcast;
-
-	rf24_mac_frame_to_tx_data(&mac_frame1, &tx_data);
-
-	// simulate data tranfer transmit+receive
-	memcpy(rx_data.payload, tx_data.payload, 32);
-
-	rf24_mac_rx_data_to_mac_frame(&rx_data, &mac_frame2);*/
-
-	//struct rf24_csma_ca_slot_time slot_time;
-	//slot_time.ms = 1000;
-	//rf24_csma_ca_access_medium(&mac_addr_broadcast, &slot_time);*/
-
+	rf24_worker_print_timers();*/
 }
 
 void rf24_mac_build_address()
@@ -296,8 +249,7 @@ void _process_transmission()
 		mac_transmission.state = COMPLETED;
 
 		rf24_debug(	MAC, TRANSMISSION, mac_transmission.frame_subtype, VOID, &mac_transmission.receiver,
-					"Transmission completed (%d frames)\n\n",
-					mac_transmission.frame_count);
+					"Transmission completed (%d frames)\n\n", mac_transmission.frame_count);
 
 		if(mac_transmission.state != FINALIZED)
 		{
@@ -314,8 +266,7 @@ void _process_reception()
 		mac_transmission.state = COMPLETED;
 
 		rf24_debug(	MAC, RECEPTION, mac_transmission.frame_subtype, VOID, &mac_transmission.transmitter,
-					"Reception completed (%d frames)\n\n",
-					mac_transmission.frame_count);
+					"Reception completed (%d frames)\n\n", mac_transmission.frame_count);
 
 		if(mac_transmission.state != FINALIZED)
 		{
@@ -329,17 +280,17 @@ void _send_mac_frame()
 {
 	// Create TX data container
 	rf24_module_tx_data tx_data;
+	rf24_mac_frame mac_frame = rf24_worker_current_task()->data.mac.mac_frame;
 
 	// Covert MAC frame into TX data
-	rf24_mac_frame_to_tx_data(&rf24_worker_current_task()->data.mac.mac_frame, &tx_data);
+	rf24_mac_frame_to_tx_data(&mac_frame, &tx_data);
 
-	// Transmit MAC frame TX data representation
+	// Transmit MAC frame (TX data)
 	rf24_module_transmit(&tx_data);
+
 
 	// Stop stop-watch in case it has been started
 	//rf24_stm32f1xx_start_stopwatch();
-
-	if(mac_transmission.transmission_type == reception) _process_reception();
 }
 
 void rf24_mac_send_ack(rf24_mac_frame *mac_frame)
@@ -362,6 +313,8 @@ void rf24_mac_send_ack(rf24_mac_frame *mac_frame)
 
 	rf24_debug(	MAC, TRANSMIT, CONTROL_ACK, mac_frame->frame_control.subtype, &mac_frame->transmitter,
 				"frame %d\n", mac_frame->id);
+
+	if(mac_transmission.transmission_type == reception) _process_reception();
 }
 
 
@@ -560,13 +513,6 @@ void _start_transmission()
 
 	task = rf24_worker_build_task(wait_for_ack, 1, T_ACK_TIMEOUT_US, false);
 	rf24_worker_attach(task, rf24_mac_ack_timeout);
-
-	/*#ifdef RF24_MAC_DEBUG
-		rf24_debug(
-				"MAC: Transmit [%s] to %s",
-				rf24_mac_frame_subtype_str[task->data.mac.mac_frame.frame_control.subtype],
-				decimal_to_string(task->data.mac.mac_frame.receiver.bytes, 6, ':'));
-	#endif*/
 }
 
 void rf24_mac_transfer_frame(rf24_mac_communication_type communication_type, rf24_mac_frame *mac_frame)
@@ -644,8 +590,6 @@ void rf24_mac_print_payload(rf24_mac_transmission *transmission)
 
 void rf24_mac_print_frame(rf24_mac_frame *mac_frame)
 {
-	char str[64];
-
 	rf24_printf("%d:%d:%d:%d:%d:%d",
 		mac_frame->transmitter.bytes[0],
 		mac_frame->transmitter.bytes[1],
@@ -654,9 +598,7 @@ void rf24_mac_print_frame(rf24_mac_frame *mac_frame)
 		mac_frame->transmitter.bytes[4],
 		mac_frame->transmitter.bytes[5]);
 
-	rf24_printf("%-23s ", str);
-
-	sprintf(str,"%d:%d:%d:%d:%d:%d",
+	rf24_printf(" %d:%d:%d:%d:%d:%d",
 		mac_frame->receiver.bytes[0],
 		mac_frame->receiver.bytes[1],
 		mac_frame->receiver.bytes[2],
@@ -664,7 +606,7 @@ void rf24_mac_print_frame(rf24_mac_frame *mac_frame)
 		mac_frame->receiver.bytes[4],
 		mac_frame->receiver.bytes[5]);
 
-	rf24_printf("%-23s %-14s %-14s", str,
+	rf24_printf(" %-14s %-14s",
 				rf24_mac_frame_type_string[mac_frame->frame_control.type],
 				rf24_mac_frame_subtype_string_short[mac_frame->frame_control.subtype]);
 

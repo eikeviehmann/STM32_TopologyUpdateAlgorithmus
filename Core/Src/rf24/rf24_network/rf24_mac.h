@@ -86,7 +86,7 @@ typedef enum {
 static const char *rf24_mac_frame_subtype_string[] = {
 		"",
 		"TOPOLOGY_NEIGHBOR_UPDATE_MESSAGE",
-		"TOPOLOGY_NEIGHBOR_ANSWER_MESSAGE",
+		"TOPOLOGY_REPLY_MESSAGE",
 		"CONTROL_RTS",
 		"CONTROL_CTS",
 		"CONTROL_ACK",
@@ -97,7 +97,7 @@ static const char *rf24_mac_frame_subtype_string[] = {
 static const char *rf24_mac_frame_subtype_string_short[] = {
 		"",
 		"NUM",
-		"NAM",
+		"TR",
 		"RTS",
 		"CTS",
 		"ACK",
@@ -107,7 +107,7 @@ static const char *rf24_mac_frame_subtype_string_short[] = {
 
 typedef enum {
 	TOPOLOGY_NEIGHBOR_UPDATE_MESSAGE=1,
-	TOPOLOGY_NEIGHBOR_ANSWER_MESSAGE,
+	TOPOLOGY_REPLY_MESSAGE,
 	CONTROL_RTS,
 	CONTROL_CTS,
 	CONTROL_ACK,

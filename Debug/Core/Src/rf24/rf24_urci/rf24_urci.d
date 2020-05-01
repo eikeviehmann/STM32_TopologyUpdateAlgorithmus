@@ -10,7 +10,7 @@ Core/Src/rf24/rf24_urci/rf24_urci.o: \
  ../Drivers/CMSIS/Include/cmsis_gcc.h \
  ../Drivers/CMSIS/Device/ST/STM32F1xx/Include/system_stm32f1xx.h \
  ../Core/Src/rf24/rf24_urci/../rf24_module/../rf24_stm32f1xx/rf24_stm32f1xx.h \
- ../Core/Src/rf24/rf24_urci/../rf24_module/../rf24_stm32f1xx/../inc/stm32f10x_md5.h \
+ c:\projekte\stm32_topologyupdatealgorithm\core\src\rf24\inc\stm32f10x_md5.h \
  ../Core/Src/rf24/rf24_urci/../rf24_module/nRF24L01.h \
  ../Core/Src/rf24/rf24_urci/../rf24_network/rf24_csma_ca.h \
  ../Core/Src/rf24/rf24_urci/../rf24_network/rf24_mac.h \
@@ -42,7 +42,7 @@ Core/Src/rf24/rf24_urci/rf24_urci.o: \
 
 ../Core/Src/rf24/rf24_urci/../rf24_module/../rf24_stm32f1xx/rf24_stm32f1xx.h:
 
-../Core/Src/rf24/rf24_urci/../rf24_module/../rf24_stm32f1xx/../inc/stm32f10x_md5.h:
+c:\projekte\stm32_topologyupdatealgorithm\core\src\rf24\inc\stm32f10x_md5.h:
 
 ../Core/Src/rf24/rf24_urci/../rf24_module/nRF24L01.h:
 

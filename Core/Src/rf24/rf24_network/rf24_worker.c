@@ -363,18 +363,18 @@ void rf24_worker_start_timer(rf24_timer_names name, rf24_timer_units unit, uint3
 	}
 }
 
-struct rf24_timespan rf24_worker_stop_timer(rf24_timer_names timer_name)
+uint32_t rf24_worker_stop_timer(rf24_timer_names timer_name)
 {
-	struct rf24_timespan timespan;
+	uint32_t t_us_remaining = 0;
 
 	// start from the first node
 	struct rf24_timer *current_timer = rf24_timers;
 
 	// in case timer is head
 	if(rf24_timers->name == timer_name){
-		timespan = rf24_worker_us_to_timespan(rf24_timers->t_count_us);
+		t_us_remaining = rf24_timers->t_count_us;
 		rf24_timers = rf24_timers->next_timer;
-		return timespan;
+		return t_us_remaining;
 	}
 
 	// iterate over list
@@ -382,15 +382,15 @@ struct rf24_timespan rf24_worker_stop_timer(rf24_timer_names timer_name)
 	{
 		if(current_timer->next_timer->name == timer_name)
 		{
-			timespan = rf24_worker_us_to_timespan(current_timer->next_timer->t_count_us);
+			t_us_remaining = current_timer->next_timer->t_count_us;
 			current_timer->next_timer = current_timer->next_timer->next_timer;
-			return timespan;
+			return t_us_remaining;
 		}
 
 		current_timer = current_timer->next_timer;
 	}
 
-	return timespan;
+	return t_us_remaining;
 }
 
 struct rf24_timespan rf24_worker_us_to_timespan(uint32_t us)

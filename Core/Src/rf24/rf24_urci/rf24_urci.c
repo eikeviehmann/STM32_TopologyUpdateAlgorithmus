@@ -138,11 +138,11 @@ const urci_cmd urci_cmds[] = {
 		.set_type = rf24_urci_string,
 		.fct_ptr_set_string = rf24_urci_ping },
 
-	{	.name = "broadcast-topology",
+	{	.name = "update-topology",
 		.description = "",
 		.details = "R/W:[R]",
 		.get_type = rf24_urci_void,
-		.fct_ptr = rf24_network_start_broadcast_topology },
+		.fct_ptr = rf24_network_start_topology_update },
 
 	{	.name = "print-topology",
 		.description = "",
@@ -179,12 +179,6 @@ const urci_cmd urci_cmds[] = {
 		.details = "",
 		.set_type = rf24_urci_string,
 		.fct_ptr_set_string = rf24_urci_transmit_mac_frame },
-
-	{	.name = "transfer-nam",
-		.description = "",
-		.details = "",
-		.set_type = rf24_urci_string,
-		.fct_ptr_set_string = rf24_urci_transfer_nam },
 
 	{	.name = "transfer-topology",
 		.description = "",
@@ -272,6 +266,7 @@ void rf24_urci_print_register(char* str){
 	}
 }
 
+/*
 void rf24_urci_transfer_nam(char* str)
 {
 	rf24_mac_addr mac_addr;
@@ -284,7 +279,7 @@ void rf24_urci_transfer_nam(char* str)
 	mac_frame.frame_control.subtype = TOPOLOGY_NEIGHBOR_ANSWER_MESSAGE;
 
 	rf24_mac_transfer_frame(UNICAST, &mac_frame);
-}
+}*/
 
 void rf24_urci_transmit_num(char* str)
 {

@@ -141,7 +141,7 @@ void					rf24_worker_start();
 void 					rf24_worker_stop();
 
 void 					rf24_worker_start_timer(rf24_timer_names name, rf24_timer_units unit, uint32_t duration, rf24_worker_fct_ptr fct_ptr_timeout);
-struct rf24_timespan 	rf24_worker_stop_timer(rf24_timer_names);
+uint32_t 	rf24_worker_stop_timer(rf24_timer_names);
 struct rf24_timespan 	rf24_worker_us_to_timespan(uint32_t us);
 void 					rf24_worker_print_timers();
 

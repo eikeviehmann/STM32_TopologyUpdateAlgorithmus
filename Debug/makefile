@@ -48,8 +48,8 @@ STM32_TopologyUpdateAlgorithm.bin \
 all: STM32_TopologyUpdateAlgorithm.elf secondary-outputs
 
 # Tool invocations
-STM32_TopologyUpdateAlgorithm.elf: $(OBJS) $(USER_OBJS) C:\Projekte\TopologyUpdateAlgorithmus\STM32_ToplogyUpdateAlgorithmus\STM32F103C8TX_FLASH.ld
-	arm-none-eabi-gcc -o "STM32_TopologyUpdateAlgorithm.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"C:\Projekte\TopologyUpdateAlgorithmus\STM32_ToplogyUpdateAlgorithmus\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="STM32_TopologyUpdateAlgorithm.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+STM32_TopologyUpdateAlgorithm.elf: $(OBJS) $(USER_OBJS) C:\Projekte\STM32_TopologyUpdateAlgorithm\STM32F103C8TX_FLASH.ld
+	arm-none-eabi-gcc -o "STM32_TopologyUpdateAlgorithm.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"C:\Projekte\STM32_TopologyUpdateAlgorithm\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="STM32_TopologyUpdateAlgorithm.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
