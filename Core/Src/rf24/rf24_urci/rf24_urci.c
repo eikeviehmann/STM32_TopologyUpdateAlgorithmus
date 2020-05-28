@@ -148,25 +148,19 @@ const urci_cmd urci_cmds[] = {
 		.description = "",
 		.details = "R/W:[R]",
 		.get_type = rf24_urci_void,
-		.fct_ptr = rf24_network_print_topology },
+		.fct_ptr = rf24_urci_print_topology },
 
 	{	.name = "print-neighbors",
 		.description = "",
 		.details = "R/W:[R]",
 		.get_type = rf24_urci_void,
-		.fct_ptr = rf24_network_print_neighbors },
+		.fct_ptr = rf24_urci_print_neighbors },
 
 	{	.name = "mac-address",
 		.description = "",
 		.details = "R/W:[R]",
 		.get_type = rf24_urci_void,
 		.fct_ptr = rf24_urci_print_mac_address },
-
-	/*{	.name = "transmit-num",
-		.description = "blabla",
-		.details = "blabla",
-		.set_type = rf24_urci_string,
-		.fct_ptr_set_string = rf24_urci_send_num },*/
 
 	{	.name = "transmit-tum",
 		.description = "",
@@ -183,8 +177,14 @@ const urci_cmd urci_cmds[] = {
 	{	.name = "transfer-topology",
 		.description = "",
 		.details = "R/W:[R]",
-		.get_type = rf24_urci_void,
-		.fct_ptr = rf24_network_transfer_topology },
+		.set_type = rf24_urci_string,
+		.fct_ptr_set_string = rf24_urci_transfer_topology },
+
+	{	.name = "transfer-test-topology",
+		.description = "blabla",
+		.details = "blabla",
+		.set_type = rf24_urci_string,
+		.fct_ptr_set_string = rf24_urci_transfer_test_topology },
 
 	{	.name = "enable-debug",
 		.description = "",
@@ -198,52 +198,56 @@ const urci_cmd urci_cmds[] = {
 		.get_type = rf24_urci_void,
 		.fct_ptr = rf24_debug_disable },
 
+	{	.name = "print-tasks",
+		.description = "",
+		.details = "R/W:[R]",
+		.get_type = rf24_urci_void,
+		.fct_ptr = rf24_worker_print_tasks },
 
-	/*{	.name = "reset",
-		.description = "adasdasdasdasdasdasd",
-		.val_type = VOID,
-		.fct_ptr = rf24_config },
+	{	.name = "print-transmission",
+		.description = "",
+		.details = "R/W:[R]",
+		.get_type = rf24_urci_void,
+		.fct_ptr = rf24_mac_print_transmission },
 
-	{	.name = "config",
-		.description = "adsadasdasdasdasdas",
-		.val_type = VOID,
-		.fct_ptr = NULL },
+	{	.name = "reset-network",
+		.description = "",
+		.details = "R/W:[R]",
+		.get_type = rf24_urci_void,
+		.fct_ptr = rf24_network_reset },
 
-	{	.name = "autoack.disable",
-		.description = "adsadasdasdasdasdas",
-		.val_type = VOID,
-		.fct_ptr = rf24_disable_autoack },
+	{	.name = "recorder",
+		.description = "",
+		.details = "R/W:[R]",
+		.get_type = rf24_urci_void,
+		.fct_ptr = rf24_worker_record },
 
-	{	.name = "autoretransmit.disable",
-		.description = "adsadasdasdasdasdas",
-		.val_type = VOID,
-		.fct_ptr = rf24_disable_autoretransmit },
+	{	.name = "blacklist",
+		.description = "",
+		.details = "",
+		.set_type = rf24_urci_string,
+		.fct_ptr_set_string = rf24_urci_blacklist_mac_address },
 
-	{	.name = "autoack.pipes",
-		.description = "adsadasdasdasdasdas",
-		.val_type = STRING,
-		.fct_ptr_string = rf24_set_autoack_pipes_string,
-		.fct_ptr_ret_string = rf24_get_autoack_pipes_string},*/
+	{	.name = "transfer-trm",
+		.description = "blabla",
+		.details = "blabla",
+		.set_type = rf24_urci_string,
+		.fct_ptr_set_string = rf24_urci_transfer_trm },
+
+	{	.name = "ping",
+		.description = "",
+		.details = "",
+		.set_type = rf24_urci_string,
+		.fct_ptr_set_string = rf24_urci_ping },
+
 };
 
 void rf24_urci_ping(char* str)
 {
-	/*rf24_mac_addr mac_addr;
-	string_to_bytes(str, ".,:;", mac_addr.bytes, 6);
+	rf24_mac_addr mac_addr;
+	rf24_urci_string_to_bytes(str, ".,:;", mac_addr.bytes, 6);
 
-	uint8_t payload[255];
-	for(int i=0; i < 255; i++) payload[i] = i;
-	rf24_mac_transfer_data(&mac_addr, DATA_DATA, payload, 255);*/
-
-	/*rf24_mac_frame mac_frame;
-
-	mac_frame.receiver = mac_addr;
-	mac_frame.frame_control.type = MANAGEMENT;
-	mac_frame.frame_control.sub_type = MANAGEMENT_NEIGHBOR_ANSWER_MESSAGE;
-
-	rf24_mac_transfer_frame(&mac_frame, BROADCAST);*/
-
-
+	rf24_mac_start_ping(&mac_addr, 5);
 }
 
 void rf24_urci_print_mac_address()
@@ -281,10 +285,18 @@ void rf24_urci_transfer_nam(char* str)
 	rf24_mac_transfer_frame(UNICAST, &mac_frame);
 }*/
 
+void rf24_urci_blacklist_mac_address(char* str)
+{
+	rf24_mac_addr mac_addr;
+	rf24_urci_string_to_bytes(str, ".,:;", mac_addr.bytes, 6);
+
+	rf24_mac_blacklist_add(&mac_addr);
+}
+
 void rf24_urci_transmit_num(char* str)
 {
 	rf24_mac_addr mac_addr;
-	string_to_bytes(str, ".,:;", mac_addr.bytes, 6);
+	rf24_urci_string_to_bytes(str, ".,:;", mac_addr.bytes, 6);
 
 	rf24_mac_frame mac_frame;
 	mac_frame.transmitter = *rf24_mac_get_address();
@@ -297,11 +309,73 @@ void rf24_urci_transmit_num(char* str)
 	rf24_module_transmit(&tx_data);
 }
 
+void rf24_urci_transfer_trm(char* str)
+{
+	rf24_mac_addr receiver;
+	rf24_urci_string_to_bytes(str, ".,:;", receiver.bytes, 6);
+
+	// Build a TRM frame
+	rf24_mac_frame mac_frame;
+	mac_frame.frame_control.type = TOPOLOGY;
+	mac_frame.frame_control.subtype = TOPOLOGY_REPLY_MESSAGE;
+	mac_frame.transmitter = *rf24_mac_get_address();
+	mac_frame.receiver = receiver;
+	mac_frame.duration = T_NAV_FRAG_MS;
+	mac_frame.topology.successor = false;
+
+	// Transfer TRM (CSMA/CA)
+	rf24_mac_transfer_frame(UNICAST, &mac_frame);
+}
+
+void rf24_urci_print_topology()
+{
+	rf24_network_print_topology(rf24_network_get_topology());
+}
+
+void rf24_urci_print_neighbors()
+{
+	rf24_network_print_neighbors(rf24_network_get_neighbors());
+}
+
+void rf24_urci_transfer_test_topology(char* str)
+{
+	rf24_mac_addr receiver;
+	rf24_urci_string_to_bytes(str, ".,:;", receiver.bytes, 6);
+
+	struct rf24_topology topology;
+
+	struct rf24_neighbor n1;
+	rf24_mac_addr adr1 = { .bytes = { 1, 2, 3, 4, 5, 6 } };
+	n1.mac_addr = adr1;
+
+	struct rf24_neighbor n2;
+	rf24_mac_addr adr2 = { .bytes = { 2, 3, 4, 5, 6, 7 } };
+	n2.mac_addr = adr2;
+
+	struct rf24_neighbor n3;
+	rf24_mac_addr adr3 = { .bytes = { 3, 4, 5, 6, 7, 8 } };
+	n3.mac_addr = adr3;
+
+	n1.next = &n2;
+	n2.next = &n3;
+	n3.next = NULL;
+
+	topology.neighbor = &n1;
+	topology.next = NULL;
+
+	uint8_t tx_data_length = 18;
+
+	uint8_t tx_data[tx_data_length];
+	rf24_network_topology_to_tx_data(&topology, tx_data, tx_data_length);
+
+	rf24_mac_transfer_data(UNICAST, &receiver, DATA_TOPOLOGY, tx_data, tx_data_length);
+}
+
 void rf24_urci_transmit_mac_frame(char* str)
 {
 	rf24_mac_frame mac_frame;
 
-	string_to_bytes(str, ".,:;", mac_frame.receiver.bytes, 6);
+	rf24_urci_string_to_bytes(str, ".,:;", mac_frame.receiver.bytes, 6);
 	mac_frame.frame_control.type = MANAGEMENT;
 	//mac_frame.frame_control.subtype = MANAGEMENT_TEST;
 
@@ -311,15 +385,14 @@ void rf24_urci_transmit_mac_frame(char* str)
 void rf24_urci_transfer_topology(char* str)
 {
 	rf24_mac_addr mac_addr;
-	string_to_bytes(str, ".,:;", mac_addr.bytes, 6);
-
-	rf24_network_transfer_topology(mac_addr);
+	rf24_urci_string_to_bytes(str, ".,:;", mac_addr.bytes, 6);
+	rf24_network_transfer_topology(&mac_addr);
 }
 
 void rf24_urci_transmit(char* str)
 {
 	rf24_mac_addr mac_addr;
-	string_to_bytes(str, ".,:;", mac_addr.bytes, 6);
+	rf24_urci_string_to_bytes(str, ".,:;", mac_addr.bytes, 6);
 
 	uint8_t payload[255];
 	for(int i=0; i < 255; i++) payload[i] = i;
@@ -441,7 +514,7 @@ void rf24_urci_set_tx_address(char *str)
 	uint8_t address[address_width];
 
 	// convert string address into byte address
-	string_to_bytes(str, ".,:;", address, address_width);
+	rf24_urci_string_to_bytes(str, ".,:;", address, address_width);
 
 	// set tx address
 	rf24_module_set_tx_address(address, address_width);
@@ -459,7 +532,7 @@ char* rf24_urci_get_tx_address(void)
 	rf24_module_get_tx_address(address);
 
 	// convert byte array into string and store it in urci_buffer_32
-	bytes_to_string(address, address_width, ':', urci_buffer_32);
+	rf24_urci_bytes_to_string(address, address_width, ':', urci_buffer_32);
 
 	// return pointer to urci_buffer_32
 	return urci_buffer_32;
@@ -512,7 +585,7 @@ void rf24_urci_set_rx_address(char *str)
 			uint8_t address[address_width];
 
 			// convert string address into byte address
-			string_to_bytes(str, ".,:;", address, address_width);
+			rf24_urci_string_to_bytes(str, ".,:;", address, address_width);
 
 			// write address
 			rf24_module_readwrite_register(write, RX_ADDR_P0 + rx_pipe, address, address_width);
@@ -558,7 +631,7 @@ char* rf24_urci_get_rx_address()
 	}
 
 	// convert address into string and store in urci_buffer_128
-	bytes_to_string(address, address_width, ":", urci_buffer_128);
+	rf24_urci_bytes_to_string(address, address_width, ":", urci_buffer_128);
 
 	// return pointer of urci_buffer_128
 	return urci_buffer_128;
@@ -742,13 +815,13 @@ void rf24_urci_putc(char data){
 
 // HELPER FUNCTIONS
 
-uint8_t string_to_bytes(char *str_in, char* delimiters, uint8_t *array_out, uint8_t array_out_length){
+uint8_t rf24_urci_string_to_bytes(char *str_in, char* delimiters, uint8_t *array_out, uint8_t array_out_length){
 
 	int count = 0;
 
 	char *ptr = strtok(str_in, delimiters);
 
-	while(ptr != NULL /*&& count<(array_out_length)*/) {
+	while(ptr != NULL) {
 		array_out[count++] = atoi(ptr);
 		ptr = strtok(NULL, delimiters);
 	}
@@ -756,7 +829,7 @@ uint8_t string_to_bytes(char *str_in, char* delimiters, uint8_t *array_out, uint
 	return true;
 }
 
-void bytes_to_string(uint8_t *address_in, uint8_t address_length, const char delimiter, char *str_out){
+void rf24_urci_bytes_to_string(uint8_t *address_in, uint8_t address_length, const char delimiter, char *str_out){
 
 	bool first = true;
 

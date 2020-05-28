@@ -17,7 +17,8 @@ Core/Src/rf24/rf24_network/rf24_network.o: \
  ../Core/Src/rf24/rf24_network/rf24_worker.h \
  ../Core/Src/rf24/rf24_network/rf24_csma_ca.h \
  ../Core/Src/rf24/rf24_network/../rf24_debug.h \
- ../Core/Src/rf24/rf24_network/../rf24_network/rf24_mac.h
+ ../Core/Src/rf24/rf24_network/../rf24_network/rf24_mac.h \
+ ../Core/Src/rf24/rf24_network/../rf24_network/rf24_worker.h
 
 ../Core/Src/rf24/rf24_network/rf24_network.h:
 
@@ -54,3 +55,5 @@ Core/Src/rf24/rf24_network/rf24_network.o: \
 ../Core/Src/rf24/rf24_network/../rf24_debug.h:
 
 ../Core/Src/rf24/rf24_network/../rf24_network/rf24_mac.h:
+
+../Core/Src/rf24/rf24_network/../rf24_network/rf24_worker.h:

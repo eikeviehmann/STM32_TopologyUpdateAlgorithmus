@@ -20,7 +20,8 @@ Core/Src/rf24/rf24_urci/rf24_urci.o: \
  ../Core/Src/rf24/rf24_urci/../rf24_network/rf24_worker.h \
  ../Core/Src/rf24/rf24_urci/../rf24_network/rf24_network.h \
  ../Core/Src/rf24/rf24_urci/../rf24_debug.h \
- ../Core/Src/rf24/rf24_urci/../rf24_network/rf24_mac.h
+ ../Core/Src/rf24/rf24_urci/../rf24_network/rf24_mac.h \
+ ../Core/Src/rf24/rf24_urci/../rf24_network/rf24_worker.h
 
 ../Core/Src/rf24/rf24_urci/rf24_urci.h:
 
@@ -63,3 +64,5 @@ c:\projekte\stm32_topologyupdatealgorithm\core\src\rf24\inc\stm32f10x_md5.h:
 ../Core/Src/rf24/rf24_urci/../rf24_debug.h:
 
 ../Core/Src/rf24/rf24_urci/../rf24_network/rf24_mac.h:
+
+../Core/Src/rf24/rf24_urci/../rf24_network/rf24_worker.h:

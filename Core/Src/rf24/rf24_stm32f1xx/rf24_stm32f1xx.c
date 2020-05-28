@@ -180,7 +180,8 @@ void rf24_stm32f1xx_init_tim3()
 	TIM3->CR1 |= (1 << 0);
 }
 
-uint32_t rf24_stm32f1xx_get_tim3_count(){
+uint32_t rf24_stm32f1xx_get_tim3_count()
+{
 	return TIM3->CNT;
 }
 

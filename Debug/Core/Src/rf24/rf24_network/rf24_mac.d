@@ -19,7 +19,8 @@ Core/Src/rf24/rf24_network/rf24_mac.o: \
  ../Core/Src/rf24/rf24_network/../rf24_module/rf24_module.h \
  ../Core/Src/rf24/rf24_network/rf24_network.h \
  ../Core/Src/rf24/rf24_network/../rf24_debug.h \
- ../Core/Src/rf24/rf24_network/../rf24_network/rf24_mac.h
+ ../Core/Src/rf24/rf24_network/../rf24_network/rf24_mac.h \
+ ../Core/Src/rf24/rf24_network/../rf24_network/rf24_worker.h
 
 ../Core/Src/rf24/rf24_network/../rf24_network/rf24_mac.h:
 
@@ -60,3 +61,5 @@ c:\projekte\stm32_topologyupdatealgorithm\core\src\rf24\rf24_stm32f1xx\rf24_stm3
 ../Core/Src/rf24/rf24_network/../rf24_debug.h:
 
 ../Core/Src/rf24/rf24_network/../rf24_network/rf24_mac.h:
+
+../Core/Src/rf24/rf24_network/../rf24_network/rf24_worker.h:

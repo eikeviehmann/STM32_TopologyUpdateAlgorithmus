@@ -6,6 +6,8 @@ struct rf24_timer		*rf24_timers = NULL;
 struct rf24_task 		*rf24_tasks = NULL;
 struct rf24_cyclic_task *rf24_cyclic_tasks = NULL;
 
+bool recorder = false;
+
 void rf24_worker_init()
 {
 	// attach callback function to rf24 module to notify tx transmitted event
@@ -23,6 +25,11 @@ void rf24_worker_init()
 	//rf24_stm32f1xx_set_timer_interrupt_ms(3, 20*CYCLIC_TASK_CYCLE_MS, rf24_worker_process_cyclic_tasks);
 }
 
+void rf24_worker_record()
+{
+	recorder = true;
+}
+
 void rf24_worker_data_transmitted_handler()
 {
 
@@ -33,8 +40,19 @@ void rf24_worker_data_received_handler(rf24_module_rx_data *rx_data)
 	// cast rx_data (byte array) to mac frame (struct)
 	rf24_mac_frame *mac_frame = (rf24_mac_frame*) rx_data->payload;
 
-	//rf24_mac_print_frame(mac_frame);
-	//return;
+	#ifdef RF24_DEBUG
+
+		if(recorder){
+			rf24_mac_print_frame(mac_frame);
+			return;
+		}
+
+		rf24_mac_addr* blacklist = rf24_mac_get_blacklist();
+
+		for (int i=0; i < rf24_mac_get_blacklist_length(); i++)
+			if(rf24_mac_addr_equal(&mac_frame->transmitter, &blacklist[i])) return;
+
+	#endif
 
 	// if frame is csma ca control message call csma ca frame handler
 	switch(mac_frame->frame_control.type)
@@ -49,33 +67,6 @@ void rf24_worker_data_received_handler(rf24_module_rx_data *rx_data)
 
 	// Call MAC frame received handler
 	rf24_mac_frame_received_handler(mac_frame);
-}
-
-void rf24_worker_process_cyclic_tasks()
-{
-	if(rf24_tasks == NULL){};
-
-	// start from beginning
-	struct rf24_cyclic_task *current_task = rf24_cyclic_tasks;
-
-	// iterate over linked list (cyclic tasks)
-	while(current_task != NULL)
-	{
-		// update wait state
-		current_task->t_cycle_count_ms += CYCLIC_TASK_CYCLE_MS;
-
-		// one cycle past?
-		if(current_task->t_cycle_count_ms >= current_task->t_cycle_ms)
-		{
-			// reset t_cycle_count_us
-			current_task->t_cycle_count_ms = 0;
-
-			// execute tasks function
-			if(current_task->fct_ptr_execution) current_task->fct_ptr_execution();
-		}
-
-		current_task = current_task->next_task;
-	}
 }
 
 void rf24_worker_process_timers()
@@ -198,6 +189,12 @@ void rf24_worker_push(struct rf24_task* task, rf24_worker_fct_ptr fct_ptr_execut
 void rf24_worker_start(){};
 void rf24_worker_stop(){};
 
+bool rf24_worker_is_idle()
+{
+	if(rf24_tasks == NULL) return true;
+	return false;
+};
+
 //_________________________________________________________________________________________________________________________________________________________________________
 // Internal Functions
 
@@ -307,7 +304,7 @@ bool rf24_worker_tasks_available()
 	return rf24_tasks == NULL;
 }
 
-void rf24_worker_pop_task()
+struct rf24_task* rf24_worker_pop_task()
 {
 	// save a reference to current task
 	struct rf24_task *current_task = rf24_tasks;
@@ -338,7 +335,7 @@ void rf24_worker_print_tasks()
 	}
 }
 
-void rf24_worker_start_timer(rf24_timer_names name, rf24_timer_units unit, uint32_t duration, rf24_worker_fct_ptr fct_ptr_timeout)
+struct rf24_timer* rf24_worker_start_timer(rf24_timer_names name, rf24_timer_units unit, uint32_t duration, rf24_worker_fct_ptr fct_ptr_timeout)
 {
 	struct rf24_timer *new_timer = (struct rf24_timer*) malloc(sizeof(struct rf24_timer));
 
@@ -354,48 +351,68 @@ void rf24_worker_start_timer(rf24_timer_names name, rf24_timer_units unit, uint3
 		case us: new_timer->t_us = duration; break;
 	}
 
-	if(rf24_timers == NULL){
+	if(rf24_timers == NULL)
+	{
 		rf24_timers = new_timer;
 	}
-	else{
+	else
+	{
 		new_timer->next_timer = rf24_timers;
 		rf24_timers = new_timer;
 	}
+
+	return new_timer;
 }
 
 uint32_t rf24_worker_stop_timer(rf24_timer_names timer_name)
 {
+	// Start from the first node
+	struct rf24_timer *current_timer = rf24_timers;
+	struct rf24_timer *predecessor = NULL;
 	uint32_t t_us_remaining = 0;
 
-	// start from the first node
-	struct rf24_timer *current_timer = rf24_timers;
-
-	// in case timer is head
-	if(rf24_timers->name == timer_name){
-		t_us_remaining = rf24_timers->t_count_us;
-		rf24_timers = rf24_timers->next_timer;
-		return t_us_remaining;
-	}
-
-	// iterate over list
+	// Iterate over list
 	while(current_timer != NULL)
 	{
-		if(current_timer->next_timer->name == timer_name)
+		if(current_timer->name == timer_name)
 		{
-			t_us_remaining = current_timer->next_timer->t_count_us;
-			current_timer->next_timer = current_timer->next_timer->next_timer;
+			t_us_remaining = current_timer->t_count_us;
+
+			if(predecessor)
+				predecessor->next_timer = current_timer->next_timer;
+			else
+				rf24_timers = current_timer->next_timer;
+
 			return t_us_remaining;
 		}
 
+		predecessor = current_timer;
 		current_timer = current_timer->next_timer;
 	}
 
 	return t_us_remaining;
 }
 
-struct rf24_timespan rf24_worker_us_to_timespan(uint32_t us)
+struct rf24_timer* rf24_worker_get_timer(rf24_timer_names timer_name)
 {
-	struct rf24_timespan timespan;
+	struct rf24_timer *current_timer = rf24_timers;
+
+	while(current_timer != NULL){
+		if(current_timer->name == timer_name) return current_timer;
+		current_timer = current_timer->next_timer;
+	}
+
+	return NULL;
+}
+
+void rf24_worker_reset_timer(struct rf24_timer* timer)
+{
+	timer->t_count_us = 0;
+}
+
+rf24_timespan rf24_worker_us_to_timespan(uint32_t us)
+{
+	rf24_timespan timespan;
 
 	uint32_t remaining_us = us;
 

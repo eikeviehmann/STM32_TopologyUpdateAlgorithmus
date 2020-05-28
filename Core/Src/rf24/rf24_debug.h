@@ -1,4 +1,5 @@
 #include "rf24_network/rf24_mac.h"
+#include "rf24_network/rf24_worker.h"
 
 #define VOID 0
 
@@ -32,6 +33,8 @@ extern void rf24_debug_disable();
 
 extern void rf24_printf(char* format, ...);
 extern void rf24_printf_vargs(char* format, va_list args);
+
+extern void rf24_debug_attach_timer(struct rf24_timer *timer);
 
 char* decimal_to_string(uint8_t* arr, uint8_t length, char space);
 char* decimal_to_binary(int n);

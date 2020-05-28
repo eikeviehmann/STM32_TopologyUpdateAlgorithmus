@@ -17,7 +17,9 @@ Core/Src/rf24/rf24_module/rf24_module.o: \
  ../Core/Src/rf24/rf24_module/../rf24_network/rf24_mac.h \
  ../Core/Src/rf24/rf24_module/../rf24_network/../rf24_stm32f1xx/rf24_stm32f1xx.h \
  ../Core/Src/rf24/rf24_module/../rf24_network/../rf24_stm32f1xx/rf24_stm32f1xx_uart.h \
- ../Core/Src/rf24/rf24_module/../rf24_network/../rf24_module/rf24_module.h
+ ../Core/Src/rf24/rf24_module/../rf24_network/../rf24_module/rf24_module.h \
+ ../Core/Src/rf24/rf24_module/../rf24_network/rf24_worker.h \
+ ../Core/Src/rf24/rf24_module/../rf24_network/rf24_mac.h
 
 ../Core/Src/rf24/rf24_module/rf24_module.h:
 
@@ -54,3 +56,7 @@ Core/Src/rf24/rf24_module/rf24_module.o: \
 ../Core/Src/rf24/rf24_module/../rf24_network/../rf24_stm32f1xx/rf24_stm32f1xx_uart.h:
 
 ../Core/Src/rf24/rf24_module/../rf24_network/../rf24_module/rf24_module.h:
+
+../Core/Src/rf24/rf24_module/../rf24_network/rf24_worker.h:
+
+../Core/Src/rf24/rf24_module/../rf24_network/rf24_mac.h:

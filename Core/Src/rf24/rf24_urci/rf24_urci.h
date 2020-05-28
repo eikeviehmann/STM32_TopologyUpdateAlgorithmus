@@ -55,41 +55,32 @@ typedef struct {
 
 extern void rf24_urci_init();
 extern void rf24_urci_putc(char data);
-
 void rf24_urci_help(char* str);
 void rf24_urci_print_help(void);
 void rf24_urci_print_register(char* str);
-
 void rf24_urci_set_datarate(char* str);
 char* rf24_urci_get_datarate();
-
 void rf24_urci_print_status(void);
 void rf24_urci_set_crc_length(uint8_t crc_length);
 uint8_t rf24_urci_get_crc_length();
-
 void rf24_urci_set_tx_address(char *str);
 char* rf24_urci_get_tx_address(void);
-
 void rf24_urci_set_rx_address(char *address);
 char* rf24_urci_get_rx_address();
-
 void rf24_urci_set_payload_width(uint8_t payload_size);
 uint8_t rf24_urci_get_payload_width();
-
 void rf24_urci_transmit(char* str);
 void rf24_urci_transfer_topology(char* str);
 void rf24_urci_transmit_mac_frame(char* str);
-void rf24_urci_transfer_nam(char* str);
-
+void rf24_urci_transfer_trm(char* str);
+void rf24_urci_transfer_test_topology(char* str);
 void rf24_urci_print_mac_address();
-
+void rf24_urci_print_topology();
+void rf24_urci_print_neighbors();
 void rf24_urci_ping(char* str);
-void rf24_urci_ping_reply(void);
+void rf24_urci_blacklist_mac_address(char* str);
 
-//void rf24_urci_set_rxaddress_pipe(rf24_rx_pipes rx_pipe, uint8_t *address, uint8_t address_width);
-//char* rf24_urci_get_rx_address_pipe(rf24_rx_pipes rx_pipe);
-
-uint8_t string_to_bytes(char *str_in, char* delimiters, uint8_t *array_out, uint8_t array_out_length);
-void bytes_to_string(uint8_t *address_in, uint8_t address_length, const char delimiter, char *str_out);
+void rf24_urci_bytes_to_string(uint8_t *address_in, uint8_t address_length, const char delimiter, char *str_out);
+uint8_t rf24_urci_string_to_bytes(char *str_in, char* delimiters, uint8_t *array_out, uint8_t array_out_length);
 
 #endif

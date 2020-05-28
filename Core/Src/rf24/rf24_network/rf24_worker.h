@@ -10,9 +10,8 @@
 #include "../rf24_module/rf24_module.h"
 #include "rf24_mac.h"
 
-#define TIMER_CYCLE_US 1000
-#define TASK_CYCLE_US 100
-#define CYCLIC_TASK_CYCLE_MS 100
+#define TIMER_CYCLE_US 10
+#define TASK_CYCLE_US 10
 
 typedef enum {
 	wait_sifs,
@@ -27,7 +26,8 @@ typedef enum {
 	send_mac_frame,
 	wait_for_ack,
 	transmission_successfull,
-	reception_successfull
+	reception_successfull,
+	send_ping
 } rf24_task_names;
 
 static const char *rf24_task_names_string[] = {
@@ -42,6 +42,9 @@ static const char *rf24_task_names_string[] = {
 	"wait_for_cts",
 	"send_mac_frame",
 	"wait_for_ack"
+	"transmission_successfull",
+	"transmission_successfull",
+	"send_ping"
 };
 
 typedef union {
@@ -50,6 +53,7 @@ typedef union {
 	//struct rf24_mac_task_broacast_topology_reply topology_reply;
 	struct rf24_csma_task {
 		rf24_mac_addr receiver;
+		uint8_t	frame_id;
 	} csma;
 	struct rf24_mac_task {
 		rf24_mac_frame mac_frame;
@@ -87,8 +91,10 @@ struct rf24_cyclic_task {
 };
 
 typedef enum {
+	stopwatch,
 	trm_timeout,
-	num_timeout
+	num_timeout,
+	topology_timeout,
 } rf24_timer_names;
 
 static const char *rf24_timer_names_string[] = {
@@ -97,9 +103,7 @@ static const char *rf24_timer_names_string[] = {
 };
 
 typedef enum {
-	s,
-	ms,
-	us
+	s, ms, us
 } rf24_timer_units;
 
 struct rf24_timer {
@@ -110,11 +114,12 @@ struct rf24_timer {
 	struct rf24_timer				*next_timer;
 };
 
-typedef struct rf24_timespan {
+typedef struct {
 	uint8_t s;
 	uint16_t ms;
 	uint16_t us;
-};
+}
+rf24_timespan;
 
 // INTERRUPTS
 void 					rf24_worker_data_transmitted_handler();
@@ -130,6 +135,7 @@ void					rf24_worker_process_timers();
 struct 					rf24_thread_t* rf24_worker_build_thread(rf24_worker_fct_ptr fct_ptr);
 void 					rf24_worker_delete_thread();
 
+void 					rf24_worker_record();
 
 void 					rf24_worker_init();
 void 					rf24_worker_print_tasks();
@@ -139,10 +145,13 @@ void 					rf24_worker_print_tasks();
 
 void					rf24_worker_start();
 void 					rf24_worker_stop();
+bool 					rf24_worker_is_idle();
 
-void 					rf24_worker_start_timer(rf24_timer_names name, rf24_timer_units unit, uint32_t duration, rf24_worker_fct_ptr fct_ptr_timeout);
-uint32_t 	rf24_worker_stop_timer(rf24_timer_names);
-struct rf24_timespan 	rf24_worker_us_to_timespan(uint32_t us);
+struct rf24_timer* 		rf24_worker_start_timer(rf24_timer_names name, rf24_timer_units unit, uint32_t duration, rf24_worker_fct_ptr fct_ptr_timeout);
+uint32_t 				rf24_worker_stop_timer(rf24_timer_names);
+struct rf24_timer* 		rf24_worker_get_timer(rf24_timer_names timer_name);
+void 					rf24_worker_reset_timer(struct rf24_timer* timer);
+rf24_timespan 	rf24_worker_us_to_timespan(uint32_t us);
 void 					rf24_worker_print_timers();
 
 // INTERNAL FUNCTIONS
@@ -157,7 +166,7 @@ void 					rf24_worker_add_cyclic_task(rf24_cyclic_tasks_t cyclic_task, uint32_t 
 struct rf24_task* 		rf24_worker_build_task(rf24_task_names task, uint8_t cycles, uint32_t t_cycle_us, bool immediate);
 extern void 			rf24_worker_attach_task(struct rf24_task*);
 extern void 			rf24_worker_push_task(struct rf24_task*);
-void 					rf24_worker_pop_task();
+struct rf24_task* 		rf24_worker_pop_task();
 void 					rf24_worker_reset_tasks();
 
 struct rf24_task* 		rf24_worker_current_task();

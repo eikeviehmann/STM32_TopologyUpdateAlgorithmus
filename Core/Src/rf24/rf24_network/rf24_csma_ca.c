@@ -17,29 +17,42 @@ void rf24_csma_ca_frame_received_handler(rf24_mac_frame *mac_frame)
 		{
 			if(addressed_to_me)
 			{
-				// Attach send CTS task, wait a SIFS before transmitting CTS
-				struct rf24_task *task = rf24_worker_build_task(send_cts, 1, T_SIFS_US, true);
+				bool rts_retransmitted = rf24_mac_addr_equal(&rf24_mac_get_transmission()->transmitter, &mac_frame->transmitter);
 
-				// Set destination & slot time (duration) for CTS reply
-				task->data.csma.receiver = mac_frame->transmitter;
+				// Case (1): RTS received while in an active transmission with another node, ignore
+				if(rf24_mac_transmission_is_active() && !(rts_retransmitted) )
+				{
+					//rf24_debug(CSMA_CA, RECEIVE, CONTROL_RTS, mac_frame->rts.subtype, &mac_frame->transmitter, "%d [IGNORED]\n", mac_frame->id);
+				}
+				// Case (2): New RTS received or RTS retransmit received, transmit CTS
+				else
+				{
+					rf24_debug(CSMA_CA, RECEIVE, CONTROL_RTS, mac_frame->rts.subtype, &mac_frame->transmitter,
+							   "[%d] %d frame/s, %d byte/s \n", mac_frame->id, mac_frame->rts.n_frames, mac_frame->rts.n_bytes_payload);
 
-				// Bind send CTS function to task
-				rf24_worker_attach(task, rf24_csma_ca_send_cts);
+					// Call RTS received function pointer (callback to ordering thread (MAC))
+					if(csma_ca_fct_ptr_rts_received) csma_ca_fct_ptr_rts_received(mac_frame);
 
-				// Set flag RTS received
-				csma_ca_flags.rts_received = true;
+					// Attach send CTS task, wait a SIFS before transmitting CTS
+					struct rf24_task *task = rf24_worker_build_task(send_cts, 1, T_SIFS_US, true);
 
-				// Call RTS received fct ptr (callback to receiving thread)
-				if(csma_ca_fct_ptr_rts_received) csma_ca_fct_ptr_rts_received(mac_frame);
+					// Set destination & id for CTS reply
+					task->data.csma.receiver = mac_frame->transmitter;
+					task->data.csma.frame_id = mac_frame->id;
 
-				rf24_debug(CSMA_CA, RECEIVE, CONTROL_RTS, mac_frame->rts.subtype, &mac_frame->transmitter, "addressed to me\n", "");
+					// Bind send CTS function to task
+					rf24_worker_attach(task, rf24_csma_ca_send_cts);
+
+					// Set flag RTS received
+					csma_ca_flags.rts_received = true;
+				}
 			}
 			else
 			{
 				// Wait NAV
 				rf24_csma_ca_wait_nav(mac_frame);
 
-				rf24_debug(CSMA_CA, RECEIVE, CONTROL_RTS, mac_frame->rts.subtype, &mac_frame->transmitter, "jammed\n", "");
+				rf24_debug(CSMA_CA, RECEIVE, CONTROL_RTS, mac_frame->rts.subtype, &mac_frame->transmitter, "[%d] jammed\n", mac_frame->id);
 			}
 
 			break;
@@ -54,29 +67,34 @@ void rf24_csma_ca_frame_received_handler(rf24_mac_frame *mac_frame)
 
 			if(addressed_to_me)
 			{
-				// Notice CTS received
-				csma_ca_flags.cts_received = true;
+				// remove RTS tasks in case it has been pushed right before
+				if(rf24_worker_current_task()->task == send_rts) rf24_worker_pop_task();
 
 				// Stop stop-watch
-				csma_ca_order.t_cts_response_us = rf24_stm32f1xx_stop_stopwatch();
+				//csma_ca_order.t_cts_response_us = rf24_stm32f1xx_stop_stopwatch();
+				rf24_timespan t_cts_response = rf24_worker_us_to_timespan(123);
 
 				// Pop CTS timeout from task stack
-				if(rf24_worker_current_task()->task == wait_for_cts) rf24_worker_pop_task();
-
-				// Reset CSMA/CA routine
-				//rf24_csma_ca_reset();
+				rf24_worker_pop_task();
 
 				// Call CTS received function pointer (callback function to ordering thread)
-				if(csma_ca_order.fct_ptr_access_medium) csma_ca_order.fct_ptr_access_medium();
+				if(!csma_ca_flags.cts_received)
+				{
+					rf24_debug(	CSMA_CA, RECEIVE, CONTROL_CTS, mac_frame->rts.subtype, &mac_frame->transmitter,
+							 	"[%d] t_response: %ds %dms %dus\n", mac_frame->id, t_cts_response.s, t_cts_response.ms, t_cts_response.us);
 
-				rf24_debug(CSMA_CA, RECEIVE, CONTROL_CTS, mac_frame->rts.subtype, &mac_frame->transmitter, "access to medium\n", "");
+					if(csma_ca_order.fct_ptr_access_medium) csma_ca_order.fct_ptr_access_medium();
+				}
+
+				// Notice CTS received
+				csma_ca_flags.cts_received = true;
 			}
 			else
 			{
-				rf24_debug(CSMA_CA, RECEIVE, CONTROL_CTS, mac_frame->rts.subtype, &mac_frame->transmitter, "jammed\n", "");
-
 				// Wait NAV
 				rf24_csma_ca_wait_nav(mac_frame);
+
+				rf24_debug(CSMA_CA, RECEIVE, CONTROL_CTS, mac_frame->rts.subtype, &mac_frame->transmitter, "[%d] jammed\n", mac_frame->id);
 			}
 
 			break;
@@ -100,6 +118,7 @@ void rf24_csma_ca_frame_received_handler(rf24_mac_frame *mac_frame)
 
 void rf24_csma_ca_wait_nav(rf24_mac_frame *mac_frame)
 {
+	// Extran nav duration fragment from frame
 	uint32_t t_nav_us = mac_frame->duration * 1000;
 
 	// Pointer to current (working) tasks
@@ -113,18 +132,12 @@ void rf24_csma_ca_wait_nav(rf24_mac_frame *mac_frame)
 
 		// Set flag back off competition lost
 		csma_ca_flags.backoff_competition_lost = true;
-
-		// If debug enabled print message
-		#ifdef RF24_CSMA_CA_DEBUG
-			// MESSAGE CAUSES DELAY IN TIMER PROCEEDING !!! DONT COMMENT OUT
-			//rf24_debug("CSMA/CA: [BACK-OFF] competition lost against %s", decimal_to_string(mac_frame->transmitter.bytes, 6, ':'));
-		#endif
 	}
 
 	// Am I already waiting?
 	if(task->task == wait_nav)
 	{
-		switch(mac_frame->frame_control.subtype)
+		/*switch(mac_frame->frame_control.subtype)
 		{
 			// If RTS or CTS received a new transmission starts, therefore reset wait NAV task
 			case CONTROL_RTS: case CONTROL_CTS:
@@ -141,39 +154,19 @@ void rf24_csma_ca_wait_nav(rf24_mac_frame *mac_frame)
 				break;
 			}
 			// Otherwise update wait NAV task (add duration of new MAC frame on top of current task)
-			default:
-				task->t_cycle_us += t_nav_us;
-				break;
-		}
-
-		// If debug enabled print message
-		#ifdef RF24_CSMA_CA_DEBUG
-			// MESSAGE CAUSES DELAY IN TIMER PROCEEDING !!! DONT COMMENT OUT
-			/*rf24_debug(
-					"CSMA/CA: [NAV] delay updated (%lu ms by %s from %s)",
-					task->t_cycle_us / 1000,
-					rf24_mac_frame_subtype_str[mac_frame->frame_control.subtype],
-					decimal_to_string(mac_frame->transmitter.bytes, 6, ':'));*/
-		#endif
+			default:*/
+			task->t_cycle_us += t_nav_us;
+			/*	break;
+		}*/
 	}
 	else
 	{
 		// Build a new wait NAV task
-		task = rf24_worker_build_task(wait_nav, 1, t_nav_us /*1s test*/, false);
+		task = rf24_worker_build_task(wait_nav, 1, t_nav_us, false);
 
 		// Attach it to NAV expired function
 		rf24_worker_push(task, rf24_csma_ca_nav_expired);
-
-		#ifdef RF24_CSMA_CA_DEBUG
-			// MESSAGE CAUSES DELAY IN TIMER PROCEEDING !!! DONT COMMENT OUT
-			/*rf24_debug(
-					"CMSA/CA: [NAV] delay started (%lu ms by %s from %s)",
-					t_nav_us / 1000,
-					rf24_mac_frame_subtype_str[mac_frame->frame_control.subtype],
-					decimal_to_string(mac_frame->transmitter.bytes, 6, ':'));*/
-		#endif
 	}
-
 }
 
 void rf24_cmsa_ca_init(rf24_csma_ca_fct_ptr_rts_received fct_ptr_rts_received)
@@ -200,28 +193,31 @@ void rf24_csma_ca_reset()
 
 void rf24_csma_ca_send_rts()
 {
+	// notice attempt
+	csma_ca_order.rts_transmits++;
+
 	rf24_mac_frame mac_frame;
 
 	mac_frame.frame_control.type = CONTROL;
 	mac_frame.frame_control.subtype = CONTROL_RTS;
+	mac_frame.id = csma_ca_order.rts_transmits;
 	mac_frame.duration = T_NAV_RTS_MS;
 	mac_frame.transmitter = *rf24_mac_get_address();
 	mac_frame.receiver = csma_ca_order.transmission->receiver;
 	mac_frame.rts.type = csma_ca_order.transmission->frame_type;
 	mac_frame.rts.subtype = csma_ca_order.transmission->frame_subtype;
-	mac_frame.rts.length = csma_ca_order.transmission->length;
+	mac_frame.rts.n_frames = csma_ca_order.transmission->n_frames;
+	mac_frame.rts.n_bytes_payload = csma_ca_order.transmission->payload_length;
 
 	rf24_module_tx_data tx_data;
 	rf24_mac_frame_to_tx_data(&mac_frame, &tx_data);
 	rf24_module_transmit(&tx_data);
 
-	// notice attempt
-	csma_ca_order.rts_transmits++;
+	// Start stop watch
+	//rf24_stm32f1xx_start_stopwatch();
 
-	// start stop watch to measure time between RTS and CTS replies
-	rf24_stm32f1xx_start_stopwatch();
-
-	rf24_debug(CSMA_CA, TRANSMIT, CONTROL_RTS, rf24_mac_get_transmission()->frame_subtype, &mac_frame.receiver, "\n", "");
+	rf24_debug(	CSMA_CA, TRANSMIT, CONTROL_RTS, rf24_mac_get_transmission()->frame_subtype, &mac_frame.receiver,
+				"[%d] %d frame/s, %d byte/s \n", mac_frame.id, mac_frame.rts.n_frames, mac_frame.rts.n_bytes_payload);
 }
 
 void rf24_csma_ca_send_cts()
@@ -230,18 +226,19 @@ void rf24_csma_ca_send_cts()
 
 	mac_frame.frame_control.type = CONTROL;
 	mac_frame.frame_control.subtype = CONTROL_CTS;
+	mac_frame.id = rf24_worker_current_task()->data.csma.frame_id;
 	mac_frame.duration = T_NAV_CTS_MS;
 	mac_frame.transmitter = *rf24_mac_get_address();
 	mac_frame.rts.type = csma_ca_order.transmission->frame_type;
 	mac_frame.rts.subtype = csma_ca_order.transmission->frame_subtype;
-	mac_frame.rts.length = csma_ca_order.transmission->length;
+	mac_frame.rts.n_bytes_payload = csma_ca_order.transmission->payload_length;
 	mac_frame.receiver = rf24_worker_current_task()->data.csma.receiver;
 
 	rf24_module_tx_data tx_data;
 	rf24_mac_frame_to_tx_data(&mac_frame, &tx_data);
 	rf24_module_transmit(&tx_data);
 
-	rf24_debug(CSMA_CA, TRANSMIT, CONTROL_CTS, rf24_mac_get_transmission()->frame_subtype, &mac_frame.receiver, "\n","");
+	rf24_debug(CSMA_CA, TRANSMIT, CONTROL_CTS, rf24_mac_get_transmission()->frame_subtype, &mac_frame.receiver, "[%d]\n", mac_frame.id);
 }
 
 void rf24_csma_ca_nav_expired()
@@ -274,15 +271,17 @@ void rf24_csma_ca_cts_timeout()
 	{
 		if(csma_ca_order.rts_transmits >= N_MAX_RTS_RETRANSMITS)
 		{
-			rf24_debug(CSMA_CA, TIMEOUT, VOID, VOID, NULL,"[CTS-Timeout] max retransmits reached -> transmission cancelled\n", "");
+			rf24_debug(CSMA_CA, TIMEOUT, CONTROL_CTS, VOID, NULL,"max retransmits reached, transmission cancelled\n", "");
+
+			// Set transmission state to CANCELLED
+			rf24_mac_set_transmission_state(CANCELLED);
 
 			// Reset routine
 			rf24_csma_ca_reset();
 		}
 		else
 		{
-			rf24_debug(CSMA_CA, TIMEOUT, VOID, VOID, NULL,
-					"[CTS-Timeout] %d/%d attempt(s) -> start again\n", csma_ca_order.rts_transmits, N_MAX_RTS_RETRANSMITS);
+			rf24_debug(CSMA_CA, TIMEOUT, CONTROL_CTS, VOID, NULL, "retransmit RTS (%d/%d) \n", csma_ca_order.rts_transmits, N_MAX_RTS_RETRANSMITS);
 
 			// Start a new CSMA/CA cycle (recursive call)
 			rf24_csma_ca_access_medium(
@@ -325,8 +324,7 @@ void rf24_csma_ca_access_medium(
 	// 2)___________________________________________________________________________________________
 	// Generate & wait random back-off
 
-	uint32_t t_ramdom_backoff_us = rf24_csma_ca_compute_random_backoff(CONTENTION_WINDOW);
-	csma_ca_order.t_random_backoff_us = t_ramdom_backoff_us;
+	csma_ca_order.t_random_backoff_us = rf24_csma_ca_compute_random_backoff(CONTENTION_WINDOW);
 
 	struct rf24_task *task = rf24_worker_build_task(wait_random_backoff, 1, csma_ca_order.t_random_backoff_us, false);
 	rf24_worker_attach(task, rf24_csma_ca_random_backoff_expired);
@@ -358,7 +356,7 @@ void rf24_csma_ca_access_medium(
 	}
 
 	rf24_debug(	CSMA_CA, INFO, csma_ca_order.transmission->frame_subtype, VOID, &csma_ca_order.transmission->receiver,
-				"Access medium (Random-Backoff: %dms)\n", t_ramdom_backoff_us/1000);
+				"get access to medium (backoff: %dms)\n", rts_transmits+1, csma_ca_order.t_random_backoff_us/1000);
 }
 
 
